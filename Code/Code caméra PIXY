@@ -1,0 +1,137 @@
+#include <SPI.h>  
+#include <Pixy.h>
+//-- MOTEUR A --
+  int ENA=5; //Connecté à Arduino pin 5(sortie pwm)
+  int IN1=2; //Connecté à Arduino pin 2
+  int IN2=3; //Connecté à Arduino pin 3
+
+//-- MOTEUR B --
+  int ENB=6; //Connecté à Arduino pin 6(Sortie pwm)
+  int IN3=4; //Connecté à Arduino pin 4
+  int IN4=7; //Connecté à Arduino pin 7
+  
+// This is the main Pixy object 
+Pixy pixy;
+int boiteRouge=1;
+int MAX_DE_COUPS=20000;
+
+
+void setup()
+{
+ pinMode(ENA,OUTPUT);//Configurer les broches comme sortie
+ pinMode(ENB,OUTPUT);
+ pinMode(IN1,OUTPUT);
+ pinMode(IN2,OUTPUT);
+ pinMode(IN3,OUTPUT);
+ pinMode(IN4,OUTPUT);
+ digitalWrite(ENA,LOW);// Moteur A - Ne pas tourner (désactivation moteur)
+ digitalWrite(ENB,LOW);// Moteur B - Ne pas tourner (désactivation moteur)
+
+  Serial.begin(9600);
+  Serial.print("Starting...\n");
+
+  pixy.init();
+}
+
+void loop()
+{
+  static int phase_detection=1;
+  static int nb_coup_sans_detection=0;
+  static int i = 0;
+  uint16_t nb_blocks;
+  char buf[32];
+  static int premiercoup=1;
+
+  if (premiercoup)
+  {
+    delay(200);
+    premiercoup=0;
+  }
+  nb_blocks = pixy.getBlocks();
+  //Serial.println(nb_blocks);
+  if(phase_detection)
+  {
+    if(nb_blocks==0)
+    { 
+      // Aucun objet visible, on tourne un peu pour explorer la scène
+     // Serial.println("Retour de recherche");     
+      digitalWrite(IN1,LOW);
+      digitalWrite(IN2,HIGH);
+      digitalWrite(IN3,HIGH);
+      digitalWrite(IN4,LOW);
+      analogWrite(ENB,0);
+      analogWrite(ENA,200);
+      delay(200);
+        // on éteint les moteurs 
+      analogWrite(ENA,0);
+      analogWrite(ENB,0);
+    }
+    else //1ère fois que je détecte quelque chose
+    {
+      //Serial.println("Je detecte quelque chose");
+      phase_detection=0;
+    }
+  }
+  else // phase de detection terminée, c'est à dire que la caméra detecte quelque chose 
+  {
+    if(nb_blocks > 0)
+    {
+      // Pixy configuré pour ne détecter qu'un seul block pour une signature
+      if (pixy.blocks[0].x < 140 && pixy.blocks[0].x > 0) // 160 correspond au milieu donc si inf à 160 il faut tourner a gauche
+      {
+        digitalWrite(IN1,LOW);
+        digitalWrite(IN2,HIGH);
+        digitalWrite(IN3,HIGH);
+        digitalWrite(IN4,LOW);
+        Serial.println(pixy.blocks[0].x);
+        //Serial.println("je dois tourner à gauche");
+        analogWrite(ENA,0);
+        analogWrite(ENB,200);
+        delay(200);
+        // on éteint les moteurs 
+        analogWrite(ENA,0);
+        analogWrite(ENB,0);
+      }
+      else if (pixy.blocks[0].x > 180 && pixy.blocks[0].x < 319) // il faut tourner à droite
+      {
+         digitalWrite(IN1,LOW);
+         digitalWrite(IN2,HIGH);
+         digitalWrite(IN3,HIGH);
+         digitalWrite(IN4,LOW);
+         Serial.println(pixy.blocks[0].x);
+         //Serial.println("je dois tourner à droite");
+         analogWrite(ENA,200);
+         analogWrite(ENB,0);
+         delay(200);
+            // on éteint les moteurs 
+         analogWrite(ENA,0);
+         analogWrite(ENB,0);
+      }
+      else if (pixy.blocks[0].x<=180 && pixy.blocks[0].x>=140) // il ne faut plus tourner, il ne reste plus qu'à avancer vers l'objet
+      {  
+         Serial.println(pixy.blocks[0].x);
+         digitalWrite(IN1,LOW);
+         digitalWrite(IN2,HIGH);
+         digitalWrite(IN3,HIGH);
+         digitalWrite(IN4,LOW);
+         //on éteint les moteurs
+         analogWrite(ENA,200);
+         analogWrite(ENB,200);
+         delay(3000);
+         analogWrite(ENA,0);
+         analogWrite(ENB,0);
+         
+      }
+    }
+    else // aucun bloc détecté en phase de poursuite
+    {
+        nb_coup_sans_detection++;
+        if(nb_coup_sans_detection == MAX_DE_COUPS)
+        {
+          // Objet perdu, il faut reprendre la recherche du début -> reinitialisation
+          phase_detection = 1;
+          nb_coup_sans_detection=0;
+        }
+     }    
+  } 
+}
