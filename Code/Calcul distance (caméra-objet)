@@ -1,35 +1,38 @@
-#include <SPI.h>  
-#include <Pixy.h>
-Pixy pixy;
-void setup() {
-  // put your setup code here, to run once:
-  Serial.begin(9600);
-  Serial.print("Starting...\n");
+#include<NewPing.h> 
 
-  pixy.init();
+NewPing sonar(14,15,500);
+int cm=0;
+//-- MOTEUR A --
+  int ENA=5; //Connecté à Arduino pin 5(sortie pwm)
+  int IN1=2; //Connecté à Arduino pin 2
+  int IN2=3; //Connecté à Arduino pin 3
+
+//-- MOTEUR B --
+  int ENB=6; //Connecté à Arduino pin 6(Sortie pwm)
+  int IN3=4; //Connecté à Arduino pin 4
+  int IN4=7; //Connecté à Arduino pin 7
+void setup() {
+    Serial.begin(9600);
 }
 
 void loop() {
-  uint16_t nb_blocks = pixy.getBlocks();
-  float largeur_objet=3.5; // en cm
-  int largeur_objet_pixel=pixy.blocks[0].width;
-  float distance;
-  static int premier_coup=1;
-  static float focal; 
-
-  if (premier_coup)
-  {
-    if (nb_blocks)
-    {
-      distance =40;
-      focal = (largeur_objet_pixel*distance)/ largeur_objet;
-      Serial.println(focal);
-      premier_coup=0;
-    }
+  cm=sonar.ping_cm();
+  Serial.println(cm);
+   if (cm<=20 && cm!=0){
+    analogWrite(ENA,0);
+    analogWrite(ENB,0);
+    Serial.println("je ne dois m'arreter");
+    //delay(1000);
+    
   }
-  if(nb_blocks)
-  {
-    distance= (largeur_objet*focal)/largeur_objet_pixel;
-   // Serial.println(distance); 
+  else{
+    digitalWrite(IN1,LOW);
+    digitalWrite(IN2,HIGH);
+    digitalWrite(IN3,HIGH);
+    digitalWrite(IN4,LOW);
+    analogWrite(ENA,200);
+    analogWrite(ENB,200);
+    Serial.println("je dois avancer");
+    //delay(1000);
   }
 }
