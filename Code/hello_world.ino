@@ -1,6 +1,13 @@
 #include<NewPing.h> 
 #include <SPI.h>  
 #include <Pixy.h>
+#include <Servo.h>
+
+//-- SERVO MOTEURS --
+
+Servo Servo1;
+Servo Servo2;
+Servo Servo3;
 
 
 //-- MOTEUR A --
@@ -15,7 +22,7 @@
   
 // This is the main Pixy object 
 Pixy pixy;
-int boiteRouge=1;
+
 int MAX_DE_COUPS=20000;
 
   static int premiercoup=1;
@@ -32,6 +39,7 @@ int MAX_DE_COUPS=20000;
 // controle du module ultra son 
 NewPing sonar(14,15,500);
 int d=0; 
+
 void setup()
 {
 
@@ -44,8 +52,19 @@ void setup()
 
 
   Serial.begin(9600);
-  Serial.print("Starting...\n");
+  // initialisation des servos
+  Servo1.attach(17,544,2400);
+  Servo2.attach(18,544,2400);
+  Servo3.attach(19,544,2400);
 
+  Servo2.write(180);
+  delay(1000);
+  Servo1.write(60);
+  delay(1000);
+  Servo3.write(73);
+  delay(1000);
+  
+  // initialison pixy cam
   pixy.init();
 }
 
@@ -157,6 +176,7 @@ void loop()
         analogWrite(ENB,180);
         d = sonar.ping_cm();
         Serial.println("je dois avancer");
+        Serial.println(d);
     }
     analogWrite(ENA,0);
     analogWrite(ENB,0);
@@ -167,6 +187,13 @@ void loop()
   {
       // TBD : commande de la pice
       Serial.println("je dois attraper l'objet");
+      Servo3.write(20);
+      delay(1500);
+      Servo2.write(130);
+      delay(1500);
+      Servo3.write(70);
+      delay(1500);
+      Servo2.write(180);
       delay(100000);
   } 
 }
